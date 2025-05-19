@@ -160,24 +160,27 @@ const ResultsPage: React.FC = () => {
             <div className="card bg-white p-6">
               <h2 className="text-xl font-semibold mb-4">Probability Distribution</h2>
               
-              {/* Bar chart */}
-              <div className="space-y-6">
+              {/* Vertical bar chart */}
+              <div className="flex items-end justify-around h-64 mb-8">
                 {Object.entries(normalizedProbabilities).map(([disease, probability]) => (
-                  <div key={disease} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-600">
-                        {formatDiseaseName(disease)}
-                      </span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {(probability * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
+                  <div key={disease} className="flex flex-col items-center w-1/4 px-2">
+                    <div className="w-full bg-gray-100 rounded-t-lg overflow-hidden" style={{ height: '200px' }}>
                       <div 
-                        className="h-full rounded-full transition-all duration-500 bg-cyan-300"
-                        style={{ width: `${probability * 100}%` }}
+                        className="w-full bg-cyan-300 transition-all duration-500"
+                        style={{ 
+                          height: `${probability * 100}%`,
+                          marginTop: `${100 - (probability * 100)}%`
+                        }}
                       ></div>
                     </div>
+                    <span className="mt-2 text-sm font-medium text-gray-900">
+                      {(probability * 100).toFixed(1)}%
+                    </span>
+                    <span className="mt-1 text-xs text-gray-600 text-center">
+                      {formatDiseaseName(disease).split(' ').map((word, i) => (
+                        <span key={i} className="block">{word}</span>
+                      ))}
+                    </span>
                   </div>
                 ))}
               </div>
