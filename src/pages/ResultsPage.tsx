@@ -162,9 +162,9 @@ const ResultsPage: React.FC = () => {
               
               {/* Vertical bar chart */}
               <div className="flex items-end justify-around h-64 mb-8">
-                {Object.entries(normalizedProbabilities).map(([disease, probability]) => (
-                  <div key={disease} className="flex flex-col items-center w-1/4 px-2">
-                    <div className="w-full bg-gray-100 rounded-t-lg overflow-hidden" style={{ height: '200px' }}>
+                {Object.entries(results.probabilities).map(([disease, probability]) => (
+                  <div key={disease} className="flex flex-col items-center w-16">
+                    <div className="w-8 bg-gray-100 rounded-t-lg overflow-hidden" style={{ height: '200px' }}>
                       <div 
                         className="w-full bg-cyan-300 transition-all duration-500"
                         style={{ 
@@ -193,7 +193,7 @@ const ResultsPage: React.FC = () => {
                     <span className="text-sm font-medium">Least Likely</span>
                   </div>
                   <h3 className="font-medium text-gray-900">Pancreatic Cancer</h3>
-                  <p className="text-2xl font-bold text-green-600">10.0%</p>
+                  <p className="text-2xl font-bold text-green-600">1.0%</p>
                 </div>
                 <div className="p-4 rounded-lg border border-gray-200">
                   <div className="flex items-center text-red-600 mb-2">
