@@ -10,26 +10,19 @@ export interface AnalysisResults {
   confidence: number;
 }
 
-/**
- * Mock function to analyze an uploaded image
- * In a real implementation, this would call a Python backend API
- */
 export const analyzeImage = async (file: File): Promise<AnalysisResults> => {
-  // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 2500));
   
-  // Generate a unique ID for this analysis
   const analysisId = uuidv4().substring(0, 8);
+  const probabilities = {
+    acute_pancreatitis: 0.85,
+    pancreatic_cysts: 0.07,
+    chronic_pancreatitis: 0.03,
+    pancreatic_cancer: 0.01
+  };
   
-  // Generate mock probabilities for the four conditions
-  // In a real implementation, these would come from the AI model
-  const probabilities = generateMockProbabilities();
-  
-  // Generate mock heatmap data
-  // In a real implementation, this would come from Grad-CAM or similar
   const heatmapData = generateMockHeatmap();
   
-  // Return mock analysis results
   return {
     analysisId,
     timestamp: new Date().toISOString(),
@@ -40,61 +33,26 @@ export const analyzeImage = async (file: File): Promise<AnalysisResults> => {
   };
 };
 
-/**
- * Generate mock disease probabilities
- * In a real implementation, these would come from the AI model
- */
-const generateMockProbabilities = (): Record<string, number> => {
-  // Generate random but realistic probabilities
-  // In this mock, one disease will have higher probability
-  
-  // Start with low probabilities for all
-  const probabilities: Record<string, number> = {
-    pancreatic_cancer: 0.05 + Math.random() * 0.15,
-    chronic_pancreatitis: 0.05 + Math.random() * 0.15,
-    pancreatic_cysts: 0.05 + Math.random() * 0.15,
-    acute_pancreatitis: 0.05 + Math.random() * 0.15
-  };
-  
-  // Select one disease to have elevated probability
-  const diseases = Object.keys(probabilities);
-  const primaryDisease = diseases[Math.floor(Math.random() * diseases.length)];
-  
-  // Set the primary disease to have higher probability
-  probabilities[primaryDisease] = 0.6 + Math.random() * 0.35;
-  
-  return probabilities;
-};
-
-/**
- * Generate mock heatmap data for visualization
- * In a real implementation, this would come from techniques like Grad-CAM
- */
 const generateMockHeatmap = (): number[][] => {
-  const size = 50; // Low resolution for performance
+  const size = 50;
   const heatmap = Array(size).fill(0).map(() => Array(size).fill(0));
   
-  // Create a primary hotspot
   const centerX = Math.floor(size * (0.3 + Math.random() * 0.4));
   const centerY = Math.floor(size * (0.3 + Math.random() * 0.4));
   const radius = Math.floor(size * (0.1 + Math.random() * 0.1));
   
-  // Fill the heatmap with values
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      // Distance from center of hotspot
       const distance = Math.sqrt(
         Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
       );
       
-      // Create a heat gradient that decreases with distance
       if (distance < radius) {
         heatmap[y][x] = Math.max(0, 1 - (distance / radius));
       }
     }
   }
   
-  // Add a secondary smaller hotspot
   if (Math.random() > 0.5) {
     const centerX2 = Math.floor(size * (0.4 + Math.random() * 0.4));
     const centerY2 = Math.floor(size * (0.4 + Math.random() * 0.4));
@@ -108,7 +66,6 @@ const generateMockHeatmap = (): number[][] => {
         
         if (distance < radius2) {
           const value = Math.max(0, 0.8 - (distance / radius2));
-          // Use the maximum value between existing and new hotspot
           heatmap[y][x] = Math.max(heatmap[y][x], value);
         }
       }
@@ -118,9 +75,6 @@ const generateMockHeatmap = (): number[][] => {
   return heatmap;
 };
 
-/**
- * Get explanations for each disease
- */
 const getDiseaseExplanations = (): Record<string, string> => {
   return {
     pancreatic_cancer: 
