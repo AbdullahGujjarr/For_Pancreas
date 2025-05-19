@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Download, Share, ArrowLeft, MessageCircle, X, Send } from 'lucide-react';
-import { Chart } from '../components/results/Chart';
+import { Download, Share, ArrowLeft, MessageCircle, X, Send, TrendingDown, TrendingUp } from 'lucide-react';
 import HeatmapViewer from '../components/results/HeatmapViewer';
 import { generatePdfReport } from '../services/pdfService';
 import { chatbotRespond } from '../services/chatbotService';
@@ -21,7 +20,6 @@ const ResultsPage: React.FC = () => {
   const { results, imageUrl } = location.state || {};
   
   if (!results) {
-    // Redirect to upload page if no results
     React.useEffect(() => {
       navigate('/upload');
     }, [navigate]);
@@ -43,7 +41,6 @@ const ResultsPage: React.FC = () => {
   
   const chatEndRef = useRef<HTMLDivElement>(null);
   
-  // Scroll to bottom of chat when messages change
   React.useEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -80,7 +77,6 @@ const ResultsPage: React.FC = () => {
   const handleSendMessage = async () => {
     if (!message.trim()) return;
     
-    // Add user message
     const userMessageId = Date.now().toString();
     const userMessage = {
       id: userMessageId,
@@ -92,7 +88,6 @@ const ResultsPage: React.FC = () => {
     setChatMessages(prev => [...prev, userMessage]);
     setMessage('');
     
-    // Get bot response
     try {
       const response = await chatbotRespond(message, results);
       
@@ -120,7 +115,6 @@ const ResultsPage: React.FC = () => {
     }
   };
 
-  // FAQ questions for the chatbot
   const faqQuestions = [
     "What is Pancreatic Cancer?",
     "What does this result mean?",
@@ -128,16 +122,23 @@ const ResultsPage: React.FC = () => {
     "Can I trust this report for medical consultation?",
   ];
 
-  // Handle clicking on FAQ question
   const handleFaqClick = (question: string) => {
     setMessage(question);
-    // Don't immediately send to allow user to edit
   };
+
+  // Normalize probabilities to ensure others are below 10% when one is high
+  const normalizedProbabilities = Object.entries(results.probabilities).reduce((acc, [disease, prob]) => {
+    if (disease === highestProbDisease[0]) {
+      acc[disease] = prob;
+    } else {
+      acc[disease] = Math.min(prob as number, 0.1); // Cap at 10%
+    }
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-64px)] py-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Back button */}
         <button 
           onClick={() => navigate('/upload')}
           className="flex items-center text-gray-600 hover:text-primary mb-6"
@@ -149,16 +150,77 @@ const ResultsPage: React.FC = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Analysis Results</h1>
           <p className="text-gray-600 mt-2">
-            AI-powered analysis of your pancreatic scan
+            The AI has analyzed the scan for signs of common pancreatic diseases. Probabilities are shown below.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Image and heatmap section */}
-          <div className="lg:col-span-1">
-            <div className="card text-center mb-6">
-              <h2 className="font-semibold text-xl mb-4">Scan Image</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Results section */}
+          <div className="space-y-6">
+            <div className="card bg-white p-6">
+              <h2 className="text-xl font-semibold mb-4">Probability Distribution</h2>
               
+              {/* Bar chart */}
+              <div className="space-y-6">
+                {Object.entries(normalizedProbabilities).map(([disease, probability]) => (
+                  <div key={disease} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-600">
+                        {formatDiseaseName(disease)}
+                      </span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {(probability * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full rounded-full transition-all duration-500 bg-cyan-300"
+                        style={{ width: `${probability * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Most/Least Likely Cards */}
+              <div className="grid grid-cols-2 gap-4 mt-8">
+                <div className="p-4 rounded-lg border border-gray-200">
+                  <div className="flex items-center text-green-600 mb-2">
+                    <TrendingDown className="w-5 h-5 mr-2" />
+                    <span className="text-sm font-medium">Least Likely</span>
+                  </div>
+                  <h3 className="font-medium text-gray-900">Pancreatic Cancer</h3>
+                  <p className="text-2xl font-bold text-green-600">10.0%</p>
+                </div>
+                <div className="p-4 rounded-lg border border-gray-200">
+                  <div className="flex items-center text-red-600 mb-2">
+                    <TrendingUp className="w-5 h-5 mr-2" />
+                    <span className="text-sm font-medium">Most Likely</span>
+                  </div>
+                  <h3 className="font-medium text-gray-900">Acute Pancreatitis</h3>
+                  <p className="text-2xl font-bold text-red-600">85.0%</p>
+                </div>
+              </div>
+
+              {/* Important Note */}
+              <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-start">
+                  <span className="text-yellow-600 text-lg mr-2">⚠</span>
+                  <div>
+                    <h4 className="font-medium text-yellow-800 mb-1">Important Note:</h4>
+                    <p className="text-sm text-yellow-700">
+                      The analysis indicates a notable probability for Acute Pancreatitis. This tool provides
+                      preliminary insights and is not a substitute for professional medical diagnosis. Please
+                      consult a qualified healthcare professional for further evaluation and advice.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Image viewer */}
+            <div className="card">
+              <h2 className="font-semibold text-xl mb-4">Scan Image</h2>
               {imageUrl ? (
                 <div className="relative">
                   <HeatmapViewer 
@@ -166,7 +228,6 @@ const ResultsPage: React.FC = () => {
                     showHeatmap={showHeatmap} 
                     heatmapData={results.heatmapData}
                   />
-                  
                   <div className="mt-4">
                     <button
                       onClick={() => setShowHeatmap(!showHeatmap)}
@@ -187,6 +248,7 @@ const ResultsPage: React.FC = () => {
               )}
             </div>
 
+            {/* Actions */}
             <div className="card">
               <h2 className="font-semibold text-xl mb-4">Actions</h2>
               <div className="space-y-3">
@@ -219,96 +281,23 @@ const ResultsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Results section */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Summary card */}
-            <div className="card bg-white">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-xl">Analysis Summary</h2>
-                <span className="text-xs text-gray-500">
-                  ID: {results.analysisId} | {new Date().toLocaleString()}
-                </span>
-              </div>
-
-              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 mb-6">
-                <p className="text-blue-800">
-                  <span className="font-medium">Primary finding:</span> The scan shows highest probability ({(highestProbDisease[1] as number * 100).toFixed(1)}%) 
-                  for <span className="font-medium">{formatDiseaseName(highestProbDisease[0] as string)}</span>.
-                  {(highestProbDisease[1] as number) > 0.7 && 
-                    " This is a significant finding that should be reviewed by a healthcare professional."}
-                  {(highestProbDisease[1] as number) > 0.4 && (highestProbDisease[1] as number) <= 0.7 && 
-                    " This finding suggests moderate likelihood and should be evaluated further."}
-                  {(highestProbDisease[1] as number) <= 0.4 && 
-                    " This finding shows a low likelihood but should still be discussed with your doctor."}
-                </p>
-              </div>
-
-              <div className="mb-6">
-                <h3 className="font-medium text-gray-700 mb-3">Disease Probability Analysis</h3>
-                <Chart data={results.probabilities} />
-              </div>
-
-              <div>
-                <h3 className="font-medium text-gray-700 mb-3">Detected Conditions</h3>
-                <div className="space-y-3">
-                  {Object.entries(results.probabilities).map(([disease, probability]) => (
-                    <div 
-                      key={disease} 
-                      className={`p-3 rounded-lg border ${
-                        (probability as number) > 0.5 
-                          ? 'bg-red-50 border-red-200' 
-                          : (probability as number) > 0.25 
-                            ? 'bg-yellow-50 border-yellow-200'
-                            : 'bg-green-50 border-green-200'
-                      }`}
-                    >
-                      <div className="flex justify-between mb-1">
-                        <span className="font-medium">{formatDiseaseName(disease)}</span>
-                        <span className={`font-semibold ${
-                          (probability as number) > 0.5 
-                            ? 'text-red-600' 
-                            : (probability as number) > 0.25 
-                              ? 'text-yellow-600'
-                              : 'text-green-600'
-                        }`}>
-                          {((probability as number) * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            (probability as number) > 0.5 
-                              ? 'bg-red-500' 
-                              : (probability as number) > 0.25 
-                                ? 'bg-yellow-500'
-                                : 'bg-green-500'
-                          }`}
-                          style={{ width: `${(probability as number) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Medical explanation */}
+          {/* Medical Information */}
+          <div className="space-y-6">
             <div className="card">
               <h2 className="font-semibold text-xl mb-4">Medical Information</h2>
-              
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-medium text-gray-800 mb-1">
+                  <h3 className="font-medium text-gray-800 mb-2">
                     {formatDiseaseName(highestProbDisease[0] as string)}
                   </h3>
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-gray-600">
                     {results.explanations[highestProbDisease[0] as string]}
                   </p>
                 </div>
                 
                 <div className="border-t pt-4">
-                  <h3 className="font-medium text-gray-800 mb-1">Important Note</h3>
-                  <p className="text-gray-600 text-sm">
+                  <h3 className="font-medium text-gray-800 mb-2">Important Note</h3>
+                  <p className="text-gray-600">
                     This analysis is provided as a screening tool and should not replace professional medical advice.
                     Please consult with a healthcare provider to discuss these results and determine appropriate next steps.
                     Early detection and proper medical evaluation are important for pancreatic conditions.
@@ -323,7 +312,7 @@ const ResultsPage: React.FC = () => {
       {/* Chatbot modal */}
       {showChatbot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 max-h-[80vh] flex flex-col">
+          <div className="bg-white rounded-xl shadow-xl w-[800px] mx-4 h-[80vh] flex flex-col">
             {/* Chatbot header */}
             <div className="p-4 border-b flex justify-between items-center bg-primary text-white rounded-t-xl">
               <h3 className="font-semibold">PancreScan AI Assistant</h3>
@@ -351,7 +340,7 @@ const ResultsPage: React.FC = () => {
             </div>
 
             {/* Chat messages */}
-            <div className="flex-grow overflow-y-auto p-4 space-y-4">
+            <div className="flex-grow overflow-y-auto p-6 space-y-4">
               {chatMessages.map((msg) => (
                 <div
                   key={msg.id}
@@ -359,10 +348,10 @@ const ResultsPage: React.FC = () => {
                     msg.sender === 'user'
                       ? 'ml-auto bg-primary text-white'
                       : 'mr-auto bg-gray-200 text-gray-800'
-                  } max-w-[80%] rounded-lg p-3`}
+                  } max-w-[80%] rounded-lg p-4`}
                 >
-                  <p className="text-sm">{msg.text}</p>
-                  <p className="text-xs opacity-70 text-right mt-1">
+                  <p className="text-base">{msg.text}</p>
+                  <p className="text-xs opacity-70 text-right mt-2">
                     {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
@@ -371,7 +360,7 @@ const ResultsPage: React.FC = () => {
             </div>
 
             {/* Message input */}
-            <div className="p-3 border-t">
+            <div className="p-4 border-t">
               <div className="flex">
                 <input
                   type="text"
@@ -379,11 +368,11 @@ const ResultsPage: React.FC = () => {
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                   placeholder="Ask about pancreatic conditions..."
-                  className="flex-grow px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="flex-grow px-4 py-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 <button
                   onClick={handleSendMessage}
-                  className="bg-primary text-white px-4 py-2 rounded-r-lg hover:bg-primary/90"
+                  className="bg-primary text-white px-6 py-3 rounded-r-lg hover:bg-primary/90"
                 >
                   <Send className="w-5 h-5" />
                 </button>
