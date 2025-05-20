@@ -4,6 +4,7 @@ import { Download, Share, ArrowLeft, MessageCircle, X, Send, TrendingDown, Trend
 import HeatmapViewer from '../components/results/HeatmapViewer';
 import { generatePdfReport } from '../services/pdfService';
 import { chatbotRespond } from '../services/chatbotService';
+import { Chart } from '../components/results/Chart';
 
 interface ChatMessage {
   id: string;
@@ -16,7 +17,6 @@ const ResultsPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Fetch results from location state or redirect if none
   const { results, imageUrl } = location.state || {};
   
   if (!results) {
@@ -33,7 +33,7 @@ const ResultsPage: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: '1',
-      text: 'Hello! I\'m your PancreScan AI assistant. I can answer questions about your results, pancreatic conditions, or how to use this system. How can I help you today?',
+      text: 'Hello! I\'m your PancreScan AI assistant. I can help you understand your results and answer questions about pancreatic conditions.',
       sender: 'bot',
       timestamp: new Date(),
     },
@@ -42,26 +42,21 @@ const ResultsPage: React.FC = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   
   React.useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  // Get highest probability disease
   const highestProbDisease = Object.entries(results.probabilities)
     .reduce((max, [disease, probability]) => 
       (probability as number) > (max[1] as number) ? [disease, probability] : max, 
       ['', 0]
     );
 
-  // Format disease names for display
   const formatDiseaseName = (name: string) => {
     return name.split('_').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
   };
 
-  // Handle PDF generation
   const handleDownloadPdf = async () => {
     setIsGeneratingPdf(true);
     try {
@@ -73,13 +68,11 @@ const ResultsPage: React.FC = () => {
     }
   };
 
-  // Handle sending a chat message
   const handleSendMessage = async () => {
     if (!message.trim()) return;
     
-    const userMessageId = Date.now().toString();
     const userMessage = {
-      id: userMessageId,
+      id: Date.now().toString(),
       text: message,
       sender: 'user' as const,
       timestamp: new Date(),
@@ -90,7 +83,6 @@ const ResultsPage: React.FC = () => {
     
     try {
       const response = await chatbotRespond(message, results);
-      
       setChatMessages(prev => [
         ...prev, 
         {
@@ -102,28 +94,16 @@ const ResultsPage: React.FC = () => {
       ]);
     } catch (error) {
       console.error('Chatbot error:', error);
-      
       setChatMessages(prev => [
         ...prev, 
         {
           id: (Date.now() + 1).toString(),
-          text: "I'm sorry, I'm having trouble processing your question. Please try again.",
+          text: "I apologize, but I'm having trouble processing your question. Please try again.",
           sender: 'bot',
           timestamp: new Date(),
         }
       ]);
     }
-  };
-
-  const faqQuestions = [
-    "What is Pancreatic Cancer?",
-    "What does this result mean?",
-    "How accurate is the AI?",
-    "Can I trust this report for medical consultation?",
-  ];
-
-  const handleFaqClick = (question: string) => {
-    setMessage(question);
   };
 
   return (
@@ -134,32 +114,36 @@ const ResultsPage: React.FC = () => {
           className="flex items-center text-gray-600 hover:text-primary mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
-          Upload another image
+          Upload another scan
         </button>
 
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Analysis Results</h1>
           <p className="text-gray-600 mt-2">
-            The AI has analyzed the scan for signs of common pancreatic diseases. Probabilities are shown below.
+            AI analysis complete. Review the findings below.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Results section */}
           <div className="space-y-6">
             <div className="card bg-white p-6">
-              <h2 className="text-xl font-semibold mb-4">Probability Distribution</h2>
+              <h2 className="text-xl font-semibold mb-4">Disease Probability Analysis</h2>
               
-              {/* Vertical bar chart */}
               <div className="flex items-end justify-around h-64 mb-8">
                 {Object.entries(results.probabilities).map(([disease, probability]) => (
-                  <div key={disease} className="flex flex-col items-center w-16">
+                  <div 
+                    key={disease} 
+                    className="flex flex-col items-center w-16 group relative"
+                    title={`${formatDiseaseName(disease)}: ${(probability * 100).toFixed(1)}%`}
+                  >
                     <div className="w-8 bg-gray-100 rounded-t-lg overflow-hidden" style={{ height: '200px' }}>
                       <div 
-                        className="w-full bg-cyan-300 transition-all duration-500"
+                        className="w-full transition-all duration-500"
                         style={{ 
                           height: `${probability * 100}%`,
-                          marginTop: `${100 - (probability * 100)}%`
+                          marginTop: `${100 - (probability * 100)}%`,
+                          backgroundColor: probability > 0.5 ? '#ef4444' : 
+                                         probability > 0.25 ? '#f59e0b' : '#22c55e'
                         }}
                       ></div>
                     </div>
@@ -171,49 +155,65 @@ const ResultsPage: React.FC = () => {
                         <span key={i} className="block">{word}</span>
                       ))}
                     </span>
+                    
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <div className="bg-gray-900 text-white text-sm rounded px-2 py-1 whitespace-nowrap">
+                        {formatDiseaseName(disease)}: {(probability * 100).toFixed(1)}%
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
 
-              {/* Most/Least Likely Cards */}
               <div className="grid grid-cols-2 gap-4 mt-8">
                 <div className="p-4 rounded-lg border border-gray-200">
                   <div className="flex items-center text-green-600 mb-2">
                     <TrendingDown className="w-5 h-5 mr-2" />
-                    <span className="text-sm font-medium">Least Likely</span>
+                    <span className="text-sm font-medium">Lowest Risk</span>
                   </div>
-                  <h3 className="font-medium text-gray-900">Pancreatic Cancer</h3>
-                  <p className="text-2xl font-bold text-green-600">1.0%</p>
+                  <h3 className="font-medium text-gray-900">
+                    {formatDiseaseName(Object.entries(results.probabilities)
+                      .reduce((min, [disease, prob]) => 
+                        prob < min[1] ? [disease, prob] : min, ['', 1])[0])}
+                  </h3>
+                  <p className="text-2xl font-bold text-green-600">
+                    {(Math.min(...Object.values(results.probabilities)) * 100).toFixed(1)}%
+                  </p>
                 </div>
                 <div className="p-4 rounded-lg border border-gray-200">
                   <div className="flex items-center text-red-600 mb-2">
                     <TrendingUp className="w-5 h-5 mr-2" />
-                    <span className="text-sm font-medium">Most Likely</span>
+                    <span className="text-sm font-medium">Highest Risk</span>
                   </div>
-                  <h3 className="font-medium text-gray-900">Acute Pancreatitis</h3>
-                  <p className="text-2xl font-bold text-red-600">85.0%</p>
+                  <h3 className="font-medium text-gray-900">
+                    {formatDiseaseName(highestProbDisease[0] as string)}
+                  </h3>
+                  <p className="text-2xl font-bold text-red-600">
+                    {(highestProbDisease[1] as number * 100).toFixed(1)}%
+                  </p>
                 </div>
               </div>
 
-              {/* Important Note */}
-              <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-start">
-                  <span className="text-yellow-600 text-lg mr-2">⚠</span>
-                  <div>
-                    <h4 className="font-medium text-yellow-800 mb-1">Important Note:</h4>
-                    <p className="text-sm text-yellow-700">
-                      The analysis indicates a notable probability for Acute Pancreatitis. This tool provides
-                      preliminary insights and is not a substitute for professional medical diagnosis. Please
-                      consult a qualified healthcare professional for further evaluation and advice.
-                    </p>
+              {(highestProbDisease[1] as number) > 0.5 && (
+                <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start">
+                    <span className="text-yellow-600 text-lg mr-2">⚠</span>
+                    <div>
+                      <h4 className="font-medium text-yellow-800 mb-1">Important Finding:</h4>
+                      <p className="text-sm text-yellow-700">
+                        Analysis indicates elevated probability for {formatDiseaseName(highestProbDisease[0] as string)}.
+                        This finding requires professional medical evaluation. Please consult a healthcare provider
+                        to discuss these results and determine appropriate next steps.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Image viewer */}
             <div className="card">
-              <h2 className="font-semibold text-xl mb-4">Scan Image</h2>
+              <h2 className="font-semibold text-xl mb-4">Scan Analysis</h2>
               {imageUrl ? (
                 <div className="relative">
                   <HeatmapViewer 
@@ -230,18 +230,17 @@ const ResultsPage: React.FC = () => {
                           : 'bg-primary text-white'
                       }`}
                     >
-                      {showHeatmap ? 'Hide Heatmap' : 'Show Abnormality Heatmap'}
+                      {showHeatmap ? 'Hide Analysis Overlay' : 'Show Analysis Overlay'}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="bg-gray-100 rounded-lg p-8 flex items-center justify-center">
-                  <p className="text-gray-500 text-lg">DICOM Image Processed</p>
+                  <p className="text-gray-500 text-lg">Scan processed successfully</p>
                 </div>
               )}
             </div>
 
-            {/* Actions */}
             <div className="card">
               <h2 className="font-semibold text-xl mb-4">Actions</h2>
               <div className="space-y-3">
@@ -253,12 +252,12 @@ const ResultsPage: React.FC = () => {
                   {isGeneratingPdf ? (
                     <>
                       <div className="loader mr-2"></div>
-                      Generating PDF...
+                      Generating Report...
                     </>
                   ) : (
                     <>
                       <Download className="w-4 h-4 mr-2" />
-                      Download PDF Report
+                      Download Detailed Report
                     </>
                   )}
                 </button>
@@ -268,16 +267,15 @@ const ResultsPage: React.FC = () => {
                   className="w-full flex items-center justify-center btn btn-outline"
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />
-                  Ask About Results
+                  Discuss Results with AI Assistant
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Medical Information */}
           <div className="space-y-6">
             <div className="card">
-              <h2 className="font-semibold text-xl mb-4">Medical Information</h2>
+              <h2 className="font-semibold text-xl mb-4">Clinical Information</h2>
               <div className="space-y-4">
                 <div>
                   <h3 className="font-medium text-gray-800 mb-2">
@@ -289,11 +287,12 @@ const ResultsPage: React.FC = () => {
                 </div>
                 
                 <div className="border-t pt-4">
-                  <h3 className="font-medium text-gray-800 mb-2">Important Note</h3>
+                  <h3 className="font-medium text-gray-800 mb-2">Medical Notice</h3>
                   <p className="text-gray-600">
-                    This analysis is provided as a screening tool and should not replace professional medical advice.
-                    Please consult with a healthcare provider to discuss these results and determine appropriate next steps.
-                    Early detection and proper medical evaluation are important for pancreatic conditions.
+                    This AI analysis is provided as a screening tool to assist healthcare providers.
+                    It should not replace professional medical evaluation. Please consult with a qualified
+                    healthcare provider to discuss these results and determine appropriate next steps.
+                    Early detection and proper medical evaluation are essential for optimal outcomes.
                   </p>
                 </div>
               </div>
@@ -302,76 +301,68 @@ const ResultsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Chatbot modal */}
       {showChatbot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-xl shadow-xl w-[800px] mx-4 h-[80vh] flex flex-col">
-            {/* Chatbot header */}
-            <div className="p-4 border-b flex justify-between items-center bg-primary text-white rounded-t-xl">
-              <h3 className="font-semibold">PancreScan AI Assistant</h3>
+          <div className="bg-white rounded-xl shadow-xl w-[900px] mx-4 h-[85vh] flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-primary to-primary/80 text-white rounded-t-xl">
+              <div>
+                <h3 className="font-semibold text-lg">Medical AI Assistant</h3>
+                <p className="text-sm text-white/80">Ask questions about your results or pancreatic conditions</p>
+              </div>
               <button
                 onClick={() => setShowChatbot(false)}
-                className="text-white hover:text-gray-200"
+                className="text-white hover:text-gray-200 transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
             </div>
 
-            {/* FAQ suggestions */}
-            <div className="p-3 bg-gray-50 border-b overflow-x-auto">
-              <div className="flex space-x-2">
-                {faqQuestions.map((question, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleFaqClick(question)}
-                    className="flex-shrink-0 px-3 py-1 bg-white border border-gray-300 rounded-full text-sm text-gray-600 hover:bg-gray-100"
-                  >
-                    {question}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Chat messages */}
             <div className="flex-grow overflow-y-auto p-6 space-y-4">
               {chatMessages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`${
-                    msg.sender === 'user'
-                      ? 'ml-auto bg-primary text-white'
-                      : 'mr-auto bg-gray-200 text-gray-800'
-                  } max-w-[80%] rounded-lg p-4`}
+                  className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p className="text-base">{msg.text}</p>
-                  <p className="text-xs opacity-70 text-right mt-2">
-                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                  <div
+                    className={`max-w-[80%] rounded-2xl p-4 ${
+                      msg.sender === 'user'
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    <p className="text-base">{msg.text}</p>
+                    <p className="text-xs opacity-70 text-right mt-2">
+                      {msg.timestamp.toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </p>
+                  </div>
                 </div>
               ))}
               <div ref={chatEndRef} />
             </div>
 
-            {/* Message input */}
-            <div className="p-4 border-t">
-              <div className="flex">
+            <div className="p-4 border-t bg-gray-50">
+              <div className="flex gap-2">
                 <input
                   type="text"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder="Ask about pancreatic conditions..."
-                  className="flex-grow px-4 py-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Ask about your results or pancreatic conditions..."
+                  className="flex-grow px-4 py-3 border border-gray-300 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-primary/50 bg-white"
                 />
                 <button
                   onClick={handleSendMessage}
-                  className="bg-primary text-white px-6 py-3 rounded-r-lg hover:bg-primary/90"
+                  className="bg-primary text-white px-6 py-3 rounded-r-xl hover:bg-primary/90 transition-colors flex items-center gap-2"
                 >
-                  <Send className="w-5 h-5" />
+                  <span>Send</span>
+                  <Send className="w-4 h-4" />
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                I can only answer questions related to pancreas, pancreatic diseases, or how to use this system.
+                For medical emergencies, please contact emergency services or your healthcare provider immediately.
               </p>
             </div>
           </div>
