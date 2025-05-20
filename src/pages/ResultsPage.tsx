@@ -126,16 +126,6 @@ const ResultsPage: React.FC = () => {
     setMessage(question);
   };
 
-  // Normalize probabilities to ensure others are below 10% when one is high
-  const normalizedProbabilities = Object.entries(results.probabilities).reduce((acc, [disease, prob]) => {
-    if (disease === highestProbDisease[0]) {
-      acc[disease] = prob;
-    } else {
-      acc[disease] = Math.min(prob as number, 0.1); // Cap at 10%
-    }
-    return acc;
-  }, {} as Record<string, number>);
-
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-64px)] py-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
