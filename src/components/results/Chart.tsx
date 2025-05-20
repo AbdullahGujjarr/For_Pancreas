@@ -5,14 +5,12 @@ interface ChartProps {
 }
 
 export const Chart: React.FC<ChartProps> = ({ data }) => {
-  // Format disease names for display
   const formatDiseaseName = (name: string) => {
     return name.split('_').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
   };
   
-  // Get bar color based on probability
   const getBarColor = (probability: number) => {
     if (probability > 0.5) return '#ef4444'; // Red
     if (probability > 0.25) return '#f59e0b'; // Amber
@@ -20,25 +18,35 @@ export const Chart: React.FC<ChartProps> = ({ data }) => {
   };
 
   return (
-    <div className="w-full">
+    <div className="flex items-end justify-around h-64 space-x-4">
       {Object.entries(data).map(([disease, probability]) => (
-        <div key={disease} className="mb-4 last:mb-0">
-          <div className="flex justify-between mb-1">
-            <span className="text-sm font-medium text-gray-700">
-              {formatDiseaseName(disease)}
-            </span>
-            <span className="text-sm font-medium text-gray-900">
-              {(probability * 100).toFixed(1)}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 h-5 rounded-full overflow-hidden">
+        <div 
+          key={disease} 
+          className="flex flex-col items-center w-16 group relative"
+          title={`${formatDiseaseName(disease)}: ${(probability * 100).toFixed(1)}%`}
+        >
+          <div className="w-8 bg-gray-100 rounded-t-lg overflow-hidden h-48">
             <div 
-              className="h-full rounded-full transition-all duration-500 ease-out"
+              className="w-full transition-all duration-500"
               style={{ 
-                width: `${probability * 100}%`,
+                height: `${probability * 100}%`,
                 backgroundColor: getBarColor(probability)
               }}
             ></div>
+          </div>
+          <span className="mt-2 text-sm font-medium text-gray-900">
+            {(probability * 100).toFixed(1)}%
+          </span>
+          <span className="mt-1 text-xs text-gray-600 text-center">
+            {formatDiseaseName(disease).split(' ').map((word, i) => (
+              <span key={i} className="block">{word}</span>
+            ))}
+          </span>
+          
+          <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="bg-gray-900 text-white text-sm rounded px-2 py-1 whitespace-nowrap">
+              {formatDiseaseName(disease)}: {(probability * 100).toFixed(1)}%
+            </div>
           </div>
         </div>
       ))}
