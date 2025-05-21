@@ -25,9 +25,9 @@ export const Chart: React.FC<ChartProps> = ({ data }) => {
           className="flex flex-col items-center w-16 group relative"
           title={`${formatDiseaseName(disease)}: ${(probability * 100).toFixed(1)}%`}
         >
-          <div className="w-8 bg-gray-100 rounded-t-lg overflow-hidden h-48">
+          <div className="w-8 bg-gray-100 rounded-t-lg overflow-hidden relative h-48">
             <div 
-              className="w-full transition-all duration-500 absolute bottom-0"
+              className="w-full absolute bottom-0 transition-all duration-500"
               style={{ 
                 height: `${probability * 100}%`,
                 backgroundColor: getBarColor(probability)
