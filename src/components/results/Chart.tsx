@@ -12,9 +12,9 @@ export const Chart: React.FC<ChartProps> = ({ data }) => {
   };
   
   const getBarColor = (probability: number) => {
-    if (probability > 0.5) return '#ef4444'; // Red
-    if (probability > 0.25) return '#f59e0b'; // Amber
-    return '#22c55e'; // Green
+    if (probability > 0.5) return '#dc2626'; // Red
+    if (probability > 0.25) return '#d97706'; // Amber
+    return '#16a34a'; // Green
   };
 
   return (
@@ -27,7 +27,7 @@ export const Chart: React.FC<ChartProps> = ({ data }) => {
         >
           <div className="w-8 bg-gray-100 rounded-t-lg overflow-hidden h-48">
             <div 
-              className="w-full transition-all duration-500"
+              className="w-full transition-all duration-500 absolute bottom-0"
               style={{ 
                 height: `${probability * 100}%`,
                 backgroundColor: getBarColor(probability)

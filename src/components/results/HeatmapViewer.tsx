@@ -60,38 +60,42 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     const imageData = ctx.getImageData(0, 0, width, height);
     const data = imageData.data;
     
+    // Find the highest value point in the heatmap
+    let maxPoint = { x: 0, y: 0, value: 0 };
+    for (let y = 0; y < heatmapData.length; y++) {
+      for (let x = 0; x < heatmapData[0].length; x++) {
+        if (heatmapData[y][x] > maxPoint.value) {
+          maxPoint = { x, y, value: heatmapData[y][x] };
+        }
+      }
+    }
+    
+    // Calculate the center point in image coordinates
+    const centerX = Math.floor((maxPoint.x / heatmapData[0].length) * width);
+    const centerY = Math.floor((maxPoint.y / heatmapData.length) * height);
+    const radius = Math.min(width, height) * 0.15; // Adjust size as needed
+    
+    // Draw a single circular highlight
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        const idx = (y * width + x) * 4;
-        const heatValue = getHeatmapValue(x, y, width, height, heatmapData);
+        const distance = Math.sqrt(
+          Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
+        );
         
-        if (heatValue > 0.1) {
+        if (distance < radius) {
+          const idx = (y * width + x) * 4;
+          const intensity = Math.max(0, 1 - (distance / radius));
+          
           // Red overlay with transparency
-          data[idx] = Math.min(255, data[idx] + heatValue * 255); // Red
-          data[idx + 1] = Math.max(0, data[idx + 1] - heatValue * 100); // Green
-          data[idx + 2] = Math.max(0, data[idx + 2] - heatValue * 100); // Blue
-          data[idx + 3] = Math.min(255, data[idx + 3] + heatValue * 100); // Alpha
+          data[idx] = Math.min(255, data[idx] + intensity * 255); // Red
+          data[idx + 1] = Math.max(0, data[idx + 1] - intensity * 100); // Green
+          data[idx + 2] = Math.max(0, data[idx + 2] - intensity * 100); // Blue
+          data[idx + 3] = Math.min(255, data[idx + 3] + intensity * 100); // Alpha
         }
       }
     }
     
     ctx.putImageData(imageData, 0, 0);
-  };
-
-  const getHeatmapValue = (
-    x: number, 
-    y: number, 
-    width: number, 
-    height: number,
-    heatmap: number[][]
-  ): number => {
-    const heatmapWidth = heatmap[0].length;
-    const heatmapHeight = heatmap.length;
-    
-    const scaledX = Math.floor((x / width) * heatmapWidth);
-    const scaledY = Math.floor((y / height) * heatmapHeight);
-    
-    return heatmap[scaledY][scaledX];
   };
 
   return (
