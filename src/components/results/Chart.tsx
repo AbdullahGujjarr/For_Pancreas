@@ -25,14 +25,18 @@ export const Chart: React.FC<ChartProps> = ({ data }) => {
           className="flex flex-col items-center w-16 group relative"
           title={`${formatDiseaseName(disease)}: ${(probability * 100).toFixed(1)}%`}
         >
-          <div className="w-8 bg-gray-100 rounded-t-lg overflow-hidden relative h-48">
+          <div className="w-8 bg-gray-100 rounded-lg overflow-hidden relative h-48">
             <div 
-              className="w-full absolute bottom-0 transition-all duration-500"
+              className="w-full absolute bottom-0 transition-transform duration-1000 ease-out origin-bottom"
               style={{ 
                 height: `${probability * 100}%`,
-                backgroundColor: getBarColor(probability)
+                backgroundColor: getBarColor(probability),
+                transform: `scaleY(${probability})`,
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
               }}
-            ></div>
+            >
+              <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent" />
+            </div>
           </div>
           <span className="mt-2 text-sm font-medium text-gray-900">
             {(probability * 100).toFixed(1)}%
@@ -43,10 +47,16 @@ export const Chart: React.FC<ChartProps> = ({ data }) => {
             ))}
           </span>
           
-          <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <div className="bg-gray-900 text-white text-sm rounded px-2 py-1 whitespace-nowrap">
-              {formatDiseaseName(disease)}: {(probability * 100).toFixed(1)}%
+          <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+            <div className="bg-gray-900 text-white text-sm rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+              <div className="font-medium">
+                {formatDiseaseName(disease)}
+              </div>
+              <div className="text-gray-300">
+                {(probability * 100).toFixed(1)}%
+              </div>
             </div>
+            <div className="w-3 h-3 bg-gray-900 rotate-45 absolute left-1/2 -bottom-1.5 -translate-x-1/2" />
           </div>
         </div>
       ))}
