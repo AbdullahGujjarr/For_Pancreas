@@ -27,12 +27,28 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     originalImageRef.current = img;
 
     img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      // Set canvas size to maintain aspect ratio but limit max dimensions
+      const maxWidth = 600;
+      const maxHeight = 450;
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > maxWidth) {
+        height = (maxWidth / width) * height;
+        width = maxWidth;
+      }
+      
+      if (height > maxHeight) {
+        width = (maxHeight / height) * width;
+        height = maxHeight;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
       
       if (showHeatmap) {
-        drawHeatmap(ctx, canvas.width, canvas.height);
+        drawHeatmap(ctx, width, height);
       }
     };
   }, [originalImage, showHeatmap]);
@@ -73,36 +89,28 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     // Calculate the center point in image coordinates
     const centerX = Math.floor((maxPoint.x / heatmapData[0].length) * width);
     const centerY = Math.floor((maxPoint.y / heatmapData.length) * height);
-    const radius = Math.min(width, height) * 0.15; // Adjust size as needed
+    const radius = Math.min(width, height) * 0.12; // Reduced size for more precise highlighting
     
-    // Draw a single circular highlight
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const distance = Math.sqrt(
-          Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
-        );
-        
-        if (distance < radius) {
-          const idx = (y * width + x) * 4;
-          const intensity = Math.max(0, 1 - (distance / radius));
-          
-          // Red overlay with transparency
-          data[idx] = Math.min(255, data[idx] + intensity * 255); // Red
-          data[idx + 1] = Math.max(0, data[idx + 1] - intensity * 100); // Green
-          data[idx + 2] = Math.max(0, data[idx + 2] - intensity * 100); // Blue
-          data[idx + 3] = Math.min(255, data[idx + 3] + intensity * 100); // Alpha
-        }
-      }
-    }
-    
-    ctx.putImageData(imageData, 0, 0);
+    // Draw a single circular highlight with gradient
+    const gradient = ctx.createRadialGradient(
+      centerX, centerY, 0,
+      centerX, centerY, radius
+    );
+    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.4)'); // Red with 40% opacity
+    gradient.addColorStop(0.6, 'rgba(220, 38, 38, 0.2)'); // Fading red
+    gradient.addColorStop(1, 'rgba(220, 38, 38, 0)'); // Transparent
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fill();
   };
 
   return (
-    <div className="relative rounded-lg overflow-hidden border border-gray-200">
+    <div className="relative rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex justify-center items-center p-4">
       <canvas 
         ref={canvasRef} 
-        className="w-full h-auto"
+        className="max-w-full h-auto shadow-md rounded"
       />
       {showHeatmap && (
         <div className="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full text-sm font-medium text-red-600 shadow-sm">
