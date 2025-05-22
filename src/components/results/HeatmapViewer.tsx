@@ -28,19 +28,21 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
 
     img.onload = () => {
       // Set canvas size to maintain aspect ratio but limit max dimensions
-      const maxWidth = 600;
-      const maxHeight = 450;
+      const maxWidth = 500;
+      const maxHeight = 400;
       let width = img.width;
       let height = img.height;
       
+      const aspectRatio = width / height;
+      
       if (width > maxWidth) {
-        height = (maxWidth / width) * height;
         width = maxWidth;
+        height = width / aspectRatio;
       }
       
       if (height > maxHeight) {
-        width = (maxHeight / height) * width;
         height = maxHeight;
+        width = height * aspectRatio;
       }
 
       canvas.width = width;
@@ -73,37 +75,51 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     width: number, 
     height: number
   ) => {
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const data = imageData.data;
+    // Find the region with highest activity in the heatmap
+    let maxRegion = { x: 0, y: 0, value: 0 };
+    const dataHeight = heatmapData.length;
+    const dataWidth = heatmapData[0].length;
     
-    // Find the highest value point in the heatmap
-    let maxPoint = { x: 0, y: 0, value: 0 };
-    for (let y = 0; y < heatmapData.length; y++) {
-      for (let x = 0; x < heatmapData[0].length; x++) {
-        if (heatmapData[y][x] > maxPoint.value) {
-          maxPoint = { x, y, value: heatmapData[y][x] };
+    // Scan the central 60% of the image for the highest value
+    const startX = Math.floor(dataWidth * 0.2);
+    const endX = Math.floor(dataWidth * 0.8);
+    const startY = Math.floor(dataHeight * 0.2);
+    const endY = Math.floor(dataHeight * 0.8);
+    
+    for (let y = startY; y < endY; y++) {
+      for (let x = startX; x < endX; x++) {
+        if (heatmapData[y][x] > maxRegion.value) {
+          maxRegion = { x, y, value: heatmapData[y][x] };
         }
       }
     }
     
-    // Calculate the center point in image coordinates
-    const centerX = Math.floor((maxPoint.x / heatmapData[0].length) * width);
-    const centerY = Math.floor((maxPoint.y / heatmapData.length) * height);
-    const radius = Math.min(width, height) * 0.12; // Reduced size for more precise highlighting
+    // Convert heatmap coordinates to image coordinates
+    const imageX = Math.floor((maxRegion.x / dataWidth) * width);
+    const imageY = Math.floor((maxRegion.y / dataHeight) * height);
     
-    // Draw a single circular highlight with gradient
+    // Calculate radius based on image size (smaller for more precise highlighting)
+    const radius = Math.min(width, height) * 0.1;
+    
+    // Create gradient for smooth highlight effect
     const gradient = ctx.createRadialGradient(
-      centerX, centerY, 0,
-      centerX, centerY, radius
+      imageX, imageY, 0,
+      imageX, imageY, radius
     );
-    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.4)'); // Red with 40% opacity
-    gradient.addColorStop(0.6, 'rgba(220, 38, 38, 0.2)'); // Fading red
-    gradient.addColorStop(1, 'rgba(220, 38, 38, 0)'); // Transparent
+    
+    // Use a more subtle gradient with better opacity control
+    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.5)');    // Core: stronger red
+    gradient.addColorStop(0.4, 'rgba(220, 38, 38, 0.3)');  // Mid: medium opacity
+    gradient.addColorStop(0.7, 'rgba(220, 38, 38, 0.1)');  // Outer: subtle
+    gradient.addColorStop(1, 'rgba(220, 38, 38, 0)');      // Edge: transparent
 
+    // Draw the highlight
+    ctx.save();
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.arc(imageX, imageY, radius, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   };
 
   return (
