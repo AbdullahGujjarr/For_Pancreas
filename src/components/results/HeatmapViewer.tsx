@@ -99,7 +99,7 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     const imageY = Math.floor((maxRegion.y / dataHeight) * height);
     
     // Calculate radius based on image size (smaller for more precise highlighting)
-    const radius = Math.min(width, height) * 0.15;
+    const radius = Math.min(width, height) * 0.1;
     
     // Create gradient for smooth highlight effect
     const gradient = ctx.createRadialGradient(
@@ -107,25 +107,18 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
       imageX, imageY, radius
     );
     
-    // Enhanced gradient with higher opacity for better visibility
-    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.8)');    // Core: stronger red
-    gradient.addColorStop(0.3, 'rgba(220, 38, 38, 0.6)');  // Mid: medium opacity
-    gradient.addColorStop(0.6, 'rgba(220, 38, 38, 0.4)');  // Outer: moderate
+    // Use a more subtle gradient with better opacity control
+    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.5)');    // Core: stronger red
+    gradient.addColorStop(0.4, 'rgba(220, 38, 38, 0.3)');  // Mid: medium opacity
+    gradient.addColorStop(0.7, 'rgba(220, 38, 38, 0.1)');  // Outer: subtle
     gradient.addColorStop(1, 'rgba(220, 38, 38, 0)');      // Edge: transparent
 
-    // Draw the highlight with increased intensity
+    // Draw the highlight
     ctx.save();
-    ctx.globalAlpha = 0.9; // Increase overall opacity
     ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.arc(imageX, imageY, radius, 0, Math.PI * 2);
     ctx.fill();
-    
-    // Add a subtle glow effect
-    ctx.shadowColor = 'rgba(220, 38, 38, 0.5)';
-    ctx.shadowBlur = 15;
-    ctx.fill();
-    
     ctx.restore();
   };
 
