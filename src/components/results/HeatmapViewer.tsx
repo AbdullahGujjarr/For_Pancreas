@@ -107,10 +107,10 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
       imageX, imageY, radius
     );
     
-    // Use a more subtle gradient with better opacity control
-    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.5)');    // Core: stronger red
-    gradient.addColorStop(0.4, 'rgba(220, 38, 38, 0.3)');  // Mid: medium opacity
-    gradient.addColorStop(0.7, 'rgba(220, 38, 38, 0.1)');  // Outer: subtle
+    // Use a more intense gradient with higher opacity
+    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.8)');    // Core: stronger red
+    gradient.addColorStop(0.4, 'rgba(220, 38, 38, 0.6)');  // Mid: medium opacity
+    gradient.addColorStop(0.7, 'rgba(220, 38, 38, 0.4)');  // Outer: subtle
     gradient.addColorStop(1, 'rgba(220, 38, 38, 0)');      // Edge: transparent
 
     // Draw the highlight
