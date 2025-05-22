@@ -75,17 +75,26 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     width: number, 
     height: number
   ) => {
-    // Find the region with highest activity in the heatmap
+    // Focus on the central-upper abdominal region where pancreas is typically located
+    const pancreaticRegion = {
+      x: Math.floor(width * 0.4),    // Start at 40% from left
+      y: Math.floor(height * 0.35),   // Start at 35% from top
+      width: Math.floor(width * 0.3), // Cover 30% of width
+      height: Math.floor(height * 0.2) // Cover 20% of height
+    };
+    
+    // Find the region with highest activity within pancreatic region
     let maxRegion = { x: 0, y: 0, value: 0 };
     const dataHeight = heatmapData.length;
     const dataWidth = heatmapData[0].length;
     
-    // Scan the central 60% of the image for the highest value
-    const startX = Math.floor(dataWidth * 0.2);
-    const endX = Math.floor(dataWidth * 0.8);
-    const startY = Math.floor(dataHeight * 0.2);
-    const endY = Math.floor(dataHeight * 0.8);
+    // Convert pancreatic region to data coordinates
+    const startX = Math.floor((pancreaticRegion.x / width) * dataWidth);
+    const endX = Math.floor(((pancreaticRegion.x + pancreaticRegion.width) / width) * dataWidth);
+    const startY = Math.floor((pancreaticRegion.y / height) * dataHeight);
+    const endY = Math.floor(((pancreaticRegion.y + pancreaticRegion.height) / height) * dataHeight);
     
+    // Scan the pancreatic region for the highest value
     for (let y = startY; y < endY; y++) {
       for (let x = startX; x < endX; x++) {
         if (heatmapData[y][x] > maxRegion.value) {
@@ -98,8 +107,8 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     const imageX = Math.floor((maxRegion.x / dataWidth) * width);
     const imageY = Math.floor((maxRegion.y / dataHeight) * height);
     
-    // Calculate radius based on image size (smaller for more precise highlighting)
-    const radius = Math.min(width, height) * 0.1;
+    // Calculate radius based on pancreas typical size relative to image
+    const radius = Math.min(width, height) * 0.15;
     
     // Create gradient for smooth highlight effect
     const gradient = ctx.createRadialGradient(
