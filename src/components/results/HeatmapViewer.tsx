@@ -28,8 +28,8 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
 
     img.onload = () => {
       // Set canvas size to maintain aspect ratio but limit max dimensions
-      const maxWidth = 400;  // Reduced from 500
-      const maxHeight = 300; // Reduced from 400
+      const maxWidth = 400;
+      const maxHeight = 300;
       let width = img.width;
       let height = img.height;
       
@@ -75,58 +75,38 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     width: number, 
     height: number
   ) => {
-    // Focus specifically on the pancreatic region
+    // Target the specific pancreatic region based on the image
     const pancreaticRegion = {
-      x: Math.floor(width * 0.35),    // Start at 35% from left
-      y: Math.floor(height * 0.3),    // Start at 30% from top
-      width: Math.floor(width * 0.25), // Cover 25% of width
-      height: Math.floor(height * 0.2) // Cover 20% of height
+      x: Math.floor(width * 0.45),    // Adjusted to target center-right area
+      y: Math.floor(height * 0.35),    // Adjusted to target upper-middle area
+      width: Math.floor(width * 0.2),  // Reduced width for more precise targeting
+      height: Math.floor(height * 0.15) // Reduced height for more precise targeting
     };
     
-    // Find the region with highest activity within pancreatic region
-    let maxRegion = { x: 0, y: 0, value: 0 };
-    const dataHeight = heatmapData.length;
-    const dataWidth = heatmapData[0].length;
+    // Calculate the center point for the heatmap
+    const centerX = pancreaticRegion.x + (pancreaticRegion.width / 2);
+    const centerY = pancreaticRegion.y + (pancreaticRegion.height / 2);
     
-    // Convert pancreatic region to data coordinates
-    const startX = Math.floor((pancreaticRegion.x / width) * dataWidth);
-    const endX = Math.floor(((pancreaticRegion.x + pancreaticRegion.width) / width) * dataWidth);
-    const startY = Math.floor((pancreaticRegion.y / height) * dataHeight);
-    const endY = Math.floor(((pancreaticRegion.y + pancreaticRegion.height) / height) * dataHeight);
-    
-    // Scan the pancreatic region for the highest value
-    for (let y = startY; y < endY; y++) {
-      for (let x = startX; x < endX; x++) {
-        if (heatmapData[y][x] > maxRegion.value) {
-          maxRegion = { x, y, value: heatmapData[y][x] };
-        }
-      }
-    }
-    
-    // Convert heatmap coordinates to image coordinates
-    const imageX = Math.floor((maxRegion.x / dataWidth) * width);
-    const imageY = Math.floor((maxRegion.y / dataHeight) * height);
-    
-    // Calculate radius based on pancreas typical size relative to image
-    const radius = Math.min(width, height) * 0.12; // Reduced from 0.15
+    // Create a smaller, more focused radius for the highlight
+    const radius = Math.min(width, height) * 0.1;
     
     // Create gradient for smooth highlight effect
     const gradient = ctx.createRadialGradient(
-      imageX, imageY, 0,
-      imageX, imageY, radius
+      centerX, centerY, 0,
+      centerX, centerY, radius
     );
     
-    // Use a more intense gradient with higher opacity
-    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.9)');    // Core: stronger red
-    gradient.addColorStop(0.4, 'rgba(220, 38, 38, 0.7)');  // Mid: medium opacity
-    gradient.addColorStop(0.7, 'rgba(220, 38, 38, 0.5)');  // Outer: subtle
-    gradient.addColorStop(1, 'rgba(220, 38, 38, 0)');      // Edge: transparent
+    // Use higher opacity values for better visibility
+    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.95)');    // Core: stronger red
+    gradient.addColorStop(0.3, 'rgba(220, 38, 38, 0.85)');  // Inner: high opacity
+    gradient.addColorStop(0.6, 'rgba(220, 38, 38, 0.75)');  // Middle: medium opacity
+    gradient.addColorStop(1, 'rgba(220, 38, 38, 0)');       // Edge: fade to transparent
 
     // Draw the highlight
     ctx.save();
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(imageX, imageY, radius, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   };
