@@ -28,8 +28,8 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
 
     img.onload = () => {
       // Set canvas size to maintain aspect ratio but limit max dimensions
-      const maxWidth = 500;
-      const maxHeight = 400;
+      const maxWidth = 400;  // Reduced from 500
+      const maxHeight = 300; // Reduced from 400
       let width = img.width;
       let height = img.height;
       
@@ -75,11 +75,11 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     width: number, 
     height: number
   ) => {
-    // Focus on the central-upper abdominal region where pancreas is typically located
+    // Focus specifically on the pancreatic region
     const pancreaticRegion = {
-      x: Math.floor(width * 0.4),    // Start at 40% from left
-      y: Math.floor(height * 0.35),   // Start at 35% from top
-      width: Math.floor(width * 0.3), // Cover 30% of width
+      x: Math.floor(width * 0.35),    // Start at 35% from left
+      y: Math.floor(height * 0.3),    // Start at 30% from top
+      width: Math.floor(width * 0.25), // Cover 25% of width
       height: Math.floor(height * 0.2) // Cover 20% of height
     };
     
@@ -108,7 +108,7 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     const imageY = Math.floor((maxRegion.y / dataHeight) * height);
     
     // Calculate radius based on pancreas typical size relative to image
-    const radius = Math.min(width, height) * 0.15;
+    const radius = Math.min(width, height) * 0.12; // Reduced from 0.15
     
     // Create gradient for smooth highlight effect
     const gradient = ctx.createRadialGradient(
@@ -117,9 +117,9 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     );
     
     // Use a more intense gradient with higher opacity
-    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.8)');    // Core: stronger red
-    gradient.addColorStop(0.4, 'rgba(220, 38, 38, 0.6)');  // Mid: medium opacity
-    gradient.addColorStop(0.7, 'rgba(220, 38, 38, 0.4)');  // Outer: subtle
+    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.9)');    // Core: stronger red
+    gradient.addColorStop(0.4, 'rgba(220, 38, 38, 0.7)');  // Mid: medium opacity
+    gradient.addColorStop(0.7, 'rgba(220, 38, 38, 0.5)');  // Outer: subtle
     gradient.addColorStop(1, 'rgba(220, 38, 38, 0)');      // Edge: transparent
 
     // Draw the highlight
