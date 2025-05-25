@@ -78,22 +78,6 @@ const preprocessImage = async (file: File): Promise<tf.Tensor4D> => {
   });
 };
 
-// Analyze specific regions of the image for pancreatic conditions
-const analyzePancreaticRegion = (tensor: tf.Tensor4D): tf.Tensor => {
-  // Extract the central region where pancreas is typically located
-  const centerCrop = tf.slice(tensor, [0, 56, 84, 0], [-1, 112, 112, -1]);
-  
-  // Apply additional convolution to focus on tissue characteristics
-  const enhanced = tf.conv2d(
-    centerCrop as tf.Tensor4D,
-    tf.randomNormal([3, 3, 3, 16]),
-    1,
-    'same'
-  );
-  
-  return enhanced;
-};
-
 // Generate focused heatmap for pancreatic region
 const generateHeatmap = async (
   model: tf.LayersModel,
@@ -140,18 +124,15 @@ export const analyzeImage = async (file: File): Promise<AnalysisResults> => {
     // Preprocess image
     const processedImage = await preprocessImage(file);
     
-    // Analyze pancreatic region
-    const enhancedRegion = analyzePancreaticRegion(processedImage);
-    
-    // Get predictions
-    const predictions = loadedModel.predict(enhancedRegion) as tf.Tensor;
+    // Get predictions directly from processed image
+    const predictions = loadedModel.predict(processedImage) as tf.Tensor;
     const probabilities = await predictions.array();
     
     // Generate focused heatmap
     const heatmap = await generateHeatmap(loadedModel, processedImage);
     
     // Clean up tensors
-    tf.dispose([processedImage, enhancedRegion, predictions]);
+    tf.dispose([processedImage, predictions]);
     
     // Map probabilities to diseases
     const diseaseClasses = [
