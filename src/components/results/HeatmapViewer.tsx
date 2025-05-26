@@ -4,12 +4,14 @@ interface HeatmapViewerProps {
   originalImage: string;
   showHeatmap: boolean;
   heatmapData: number[][];
+  probability: number;
 }
 
 const HeatmapViewer: React.FC<HeatmapViewerProps> = ({ 
   originalImage, 
   showHeatmap,
-  heatmapData
+  heatmapData,
+  probability
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
@@ -27,7 +29,6 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     originalImageRef.current = img;
 
     img.onload = () => {
-      // Set canvas size to maintain aspect ratio but limit max dimensions
       const maxWidth = 400;
       const maxHeight = 300;
       let width = img.width;
@@ -49,11 +50,11 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
       canvas.height = height;
       ctx.drawImage(img, 0, 0, width, height);
       
-      if (showHeatmap) {
+      if (showHeatmap && probability >= 0.3) {
         drawHeatmap(ctx, width, height);
       }
     };
-  }, [originalImage, showHeatmap]);
+  }, [originalImage, showHeatmap, probability]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -65,44 +66,38 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(originalImageRef.current, 0, 0, canvas.width, canvas.height);
     
-    if (showHeatmap) {
+    if (showHeatmap && probability >= 0.3) {
       drawHeatmap(ctx, canvas.width, canvas.height);
     }
-  }, [showHeatmap]);
+  }, [showHeatmap, probability]);
 
   const drawHeatmap = (
     ctx: CanvasRenderingContext2D, 
     width: number, 
     height: number
   ) => {
-    // Target the specific pancreatic region based on the image
     const pancreaticRegion = {
-      x: Math.floor(width * 0.45),    // Adjusted to target center-right area
-      y: Math.floor(height * 0.35),    // Adjusted to target upper-middle area
-      width: Math.floor(width * 0.2),  // Reduced width for more precise targeting
-      height: Math.floor(height * 0.15) // Reduced height for more precise targeting
+      x: Math.floor(width * 0.45),
+      y: Math.floor(height * 0.35),
+      width: Math.floor(width * 0.2),
+      height: Math.floor(height * 0.15)
     };
     
-    // Calculate the center point for the heatmap
     const centerX = pancreaticRegion.x + (pancreaticRegion.width / 2);
     const centerY = pancreaticRegion.y + (pancreaticRegion.height / 2);
     
-    // Create a smaller, more focused radius for the highlight
     const radius = Math.min(width, height) * 0.1;
     
-    // Create gradient for smooth highlight effect
     const gradient = ctx.createRadialGradient(
       centerX, centerY, 0,
       centerX, centerY, radius
     );
     
-    // Use higher opacity values for better visibility
-    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.95)');    // Core: stronger red
-    gradient.addColorStop(0.3, 'rgba(220, 38, 38, 0.85)');  // Inner: high opacity
-    gradient.addColorStop(0.6, 'rgba(220, 38, 38, 0.75)');  // Middle: medium opacity
-    gradient.addColorStop(1, 'rgba(220, 38, 38, 0)');       // Edge: fade to transparent
+    gradient.addColorStop(0, 'rgba(220, 38, 38, 0.95)');
+    gradient.addColorStop(0.3, 'rgba(220, 38, 38, 0.85)');
+    gradient.addColorStop(0.6, 'rgba(220, 38, 38, 0.75)');
+    gradient.addColorStop(1, 'rgba(220, 38, 38, 0)');
 
-    // Draw the highlight
     ctx.save();
     ctx.fillStyle = gradient;
     ctx.beginPath();
@@ -117,7 +112,7 @@ const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
         ref={canvasRef} 
         className="max-w-full h-auto shadow-md rounded"
       />
-      {showHeatmap && (
+      {showHeatmap && probability >= 0.3 && (
         <div className="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full text-sm font-medium text-red-600 shadow-sm">
           Analysis Overlay Active
         </div>

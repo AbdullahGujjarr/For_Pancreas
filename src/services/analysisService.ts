@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from 'uuid';
 import * as tf from '@tensorflow/tfjs';
 import * as mobilenet from '@tensorflow-models/mobilenet';
 
-// Types for analysis results
 export interface AnalysisResults {
   analysisId: string;
   timestamp: string;
@@ -12,16 +11,12 @@ export interface AnalysisResults {
   confidence: number;
 }
 
-// Load the pre-trained MobileNet model
 let model: mobilenet.MobileNet | null = null;
 
 const loadModel = async () => {
   if (!model) {
     try {
-      // Initialize TensorFlow.js
       await tf.ready();
-      
-      // Load pre-trained MobileNet model
       model = await mobilenet.load({
         version: 2,
         alpha: 1.0
@@ -34,7 +29,6 @@ const loadModel = async () => {
   return model;
 };
 
-// Process image for model input
 const preprocessImage = async (file: File): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -45,7 +39,6 @@ const preprocessImage = async (file: File): Promise<HTMLImageElement> => {
   });
 };
 
-// Generate focused heatmap for region of interest
 const generateHeatmap = async (
   image: HTMLImageElement
 ): Promise<number[][]> => {
@@ -53,8 +46,8 @@ const generateHeatmap = async (
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Failed to get canvas context');
   
-  canvas.width = 32;
-  canvas.height = 32;
+  canvas.width = 224;
+  canvas.height = 224;
   
   ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -73,6 +66,28 @@ const generateHeatmap = async (
   return heatmap;
 };
 
+const normalizeAndDistributeProbabilities = (rawPredictions: mobilenet.MobileNetPrediction[]): Record<string, number> => {
+  const diseaseClasses = [
+    'pancreatic_cancer',
+    'chronic_pancreatitis',
+    'pancreatic_cysts',
+    'acute_pancreatitis'
+  ];
+  
+  // Get base probabilities from predictions
+  const baseProbabilities = rawPredictions.map(p => p.probability);
+  
+  // Normalize to ensure sum is 1.0
+  const sum = baseProbabilities.reduce((a, b) => a + b, 0);
+  const normalizedProbabilities = baseProbabilities.map(p => p / sum);
+  
+  // Create probability map
+  return diseaseClasses.reduce((acc, disease, index) => {
+    acc[disease] = normalizedProbabilities[index];
+    return acc;
+  }, {} as Record<string, number>);
+};
+
 export const analyzeImage = async (file: File): Promise<AnalysisResults> => {
   try {
     const loadedModel = await loadModel();
@@ -80,24 +95,13 @@ export const analyzeImage = async (file: File): Promise<AnalysisResults> => {
     const predictions = await loadedModel.classify(processedImage, 4);
     const heatmap = await generateHeatmap(processedImage);
     
-    const diseaseClasses = [
-      'pancreatic_cancer',
-      'chronic_pancreatitis',
-      'pancreatic_cysts',
-      'acute_pancreatitis'
-    ];
-    
-    const probabilityMap = diseaseClasses.reduce((acc, disease, index) => {
-      acc[disease] = predictions[index]?.probability || Math.random() * 0.5;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const confidence = Math.max(...Object.values(probabilityMap));
+    const probabilities = normalizeAndDistributeProbabilities(predictions);
+    const confidence = Math.max(...Object.values(probabilities));
     
     return {
       analysisId: uuidv4(),
       timestamp: new Date().toISOString(),
-      probabilities: probabilityMap,
+      probabilities,
       heatmapData: heatmap,
       explanations: getDiseaseExplanations(),
       confidence
